@@ -1,7 +1,9 @@
 import express from 'express';
-import dotenv from "dotenv";
-import colors from "colors";
+import dotenv from 'dotenv';
+import colors from 'colors';
+import cookieParser from 'cookie-parser';
 import connectDB from './config/db.js';
+import authRoutes from './routes/authRoutes.js';
 import leaveRoutes from './routes/leaveRoutes.js';
 
 const app = express();
@@ -13,9 +15,11 @@ dotenv.config();
 connectDB();
 
 // Middlewares
-app.use(express.json()); // parse JSON body
+app.use(cookieParser()); 
+app.use(express.json()); // parse JSON bodyapp.use(express.json()); // parse JSON body
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use("/leaves", leaveRoutes);
 
 app.get("/", (req, res) => {
