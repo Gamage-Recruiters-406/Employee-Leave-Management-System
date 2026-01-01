@@ -1,4 +1,9 @@
 import express from 'express';
+import dotenv from 'dotenv';
+import colors from 'colors';
+import cookieParser from 'cookie-parser';
+import connectDB from './config/db.js';
+import authRoutes from './routes/authRoutes.js';
 
 const app = express();
 
@@ -9,9 +14,11 @@ dotenv.config();
 connectDB();
 
 // Middlewares
-
+app.use(cookieParser()); 
+app.use(express.json()); // parse JSON body
 
 // Routes
+app.use('/api/auth', authRoutes);
 
 
 app.get("/", (req, res) => {
