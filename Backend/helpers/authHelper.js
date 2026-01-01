@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 
-//  Function to Hash Password (used in Register)
+// Hash Password (used in Register)
 export const hashPassword = async (password) => {
     try {
         const salt = await bcrypt.genSalt(10); 
@@ -11,7 +11,7 @@ export const hashPassword = async (password) => {
     }
 };
 
-//  Function to Compare Password (used in Login)
+// Compare Password (used in Login)
 export const comparePassword = async (password, hashedPassword) => {
     return bcrypt.compare(password, hashedPassword);
 };
