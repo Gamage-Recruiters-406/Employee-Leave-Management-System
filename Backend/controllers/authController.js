@@ -86,7 +86,7 @@ export const login = async (req, res) => {
         }
 
         // Generate Token
-        const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+        const token = jwt.sign({ _id: user._id, role: user.role ,name: user.name }, JWT_SECRET, { expiresIn: '7d' });
 
         // Send Cookie & Response
         res.cookie('jwt', token, {
