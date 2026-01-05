@@ -1,4 +1,6 @@
 import Leave from "../models/Leave.js";
+import AuditLog from "../models/AuditLog.js";
+import User from "../models/User.js";
 
 // Create leave (Employee)
 export const createLeave = async (req, res) => {
@@ -89,8 +91,21 @@ export const updateLeaveStatus = async (req, res) => {
 
     await leave.save();
 
+    // Fetch employee info
+    const employee = await User.findById(leave.employeeId);
+
+    // Create audit log automatically
+    await AuditLog.create({
+      leaveId: leave._id,
+      action: status,
+      adminId: req.user._id,
+      adminName: req.user.name,
+      employeeId: leave.employeeId,
+      employeeName: employee ? employee.name : "Unknown",
+    });
+
     res.json({
-      message: "Leave status updated successfully",
+      message: "Leave status updated and audit log created successfully",
       leave,
     });
   } catch (error) {
@@ -120,6 +135,22 @@ export const deleteLeave = async (req, res) => {
     await Leave.findByIdAndDelete(req.params.id);
 
     res.json({ message: "Leave request deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get all audit logs (Admin only)
+export const getAuditLogs = async (req, res) => {
+  try {
+    // Only admins can reach here via middleware
+    const logs = await AuditLog.find()
+      .sort({ createdAt: -1 }) // latest first
+      .populate("leaveId", "startDate endDate reason totalDays status") // optional, get leave info
+      .populate("adminId", "name email") // optional, get admin info
+      .populate("employeeId", "name email"); // optional, get employee info
+
+    res.json({ message: "Audit logs fetched successfully", logs });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
