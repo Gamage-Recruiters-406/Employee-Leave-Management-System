@@ -5,7 +5,8 @@ import {
   getAllLeaves,
   updateLeaveStatus,
   deleteLeave,
-  getAuditLogs
+  getAuditLogs,
+  updateMyLeave
 } from "../controllers/leaveController.js";
 import { verifyToken, verifyAdmin } from "../middleware/authMiddleware.js";
 
@@ -15,6 +16,7 @@ const router = express.Router();
 router.post("/",verifyToken, createLeave); //  /leaves
 router.get("/my",verifyToken, getMyLeaves); // /leaves/my
 router.delete("/:id",verifyToken, deleteLeave); // /leaves/:id
+router.put("/:id", verifyToken, updateMyLeave); // /leaves/:id
 
 // Admin
 router.get("/admin/all",verifyToken, verifyAdmin, getAllLeaves); //  /leaves/admin/all
