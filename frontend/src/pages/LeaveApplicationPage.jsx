@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import Header from '../components/Header';
 import LeaveApplicationForm from '../components/LeaveApplicationForm';
 import LeaveHistory from '../components/LeaveHistory';
+import api from '../services/api';
 
 const ITEMS_PER_PAGE = 5;
 
@@ -13,23 +14,46 @@ const LeaveManagementApp = () => {
     endDate: '',
     reason: ''
   });
+  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [leaveRequests, setLeaveRequests] = useState([
-    { id: 1, startDate: '2025-09-01', endDate: '2025-09-03', totalDays: '03', reason: 'Vacation', status: 'Approved' },
-    { id: 2, startDate: '2025-10-01', endDate: '2025-10-10', totalDays: '09', reason: 'Health issues', status: 'Approved' },
-    { id: 3, startDate: '2025-10-10', endDate: '2025-10-20', totalDays: '10', reason: 'Personal matters', status: 'Approved' },
-    { id: 4, startDate: '2025-11-01', endDate: '2025-11-12', totalDays: '11', reason: 'Family time', status: 'Rejected' },
-    { id: 5, startDate: '2025-11-21', endDate: '2025-12-01', totalDays: '10', reason: 'Personal work', status: 'Pending' }
-  ]);
+  // Fetch leave requests on component mount
+  useEffect(() => {
+    fetchLeaveRequests();
+  }, []);
 
-  const calculateDays = (start, end) => {
-    const diff = Math.abs(new Date(end) - new Date(start));
-    return (Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1)
-      .toString()
-      .padStart(2, '0');
+  const fetchLeaveRequests = async () => {
+    try {
+      setIsLoading(true);
+      const data = await api.getMyLeaves();
+      
+      // Format the data to match the UI expectations
+      const formattedLeaves = data.map(leave => ({
+        id: leave._id,
+        startDate: new Date(leave.startDate).toISOString().split('T')[0],
+        endDate: new Date(leave.endDate).toISOString().split('T')[0],
+        totalDays: leave.totalDays.toString().padStart(2, '0'),
+        reason: leave.reason,
+        status: leave.status
+      }));
+      
+      setLeaveRequests(formattedLeaves);
+    } catch (error) {
+      // If no leaves found or not authenticated, just keep empty array
+      console.error('Error fetching leaves:', error);
+      if (error.message !== 'No leaves found') {
+        Swal.fire({
+          icon: 'info',
+          title: 'Note',
+          text: 'Please log in to view your leave requests',
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSubmitLeave = () => {
+  const handleSubmitLeave = async () => {
     if (!formData.startDate || !formData.endDate) {
       Swal.fire({
         icon: 'error',
@@ -40,26 +64,50 @@ const LeaveManagementApp = () => {
       return;
     }
 
-    const newLeave = {
-      id: Date.now(),
-      startDate: formData.startDate,
-      endDate: formData.endDate,
-      totalDays: calculateDays(formData.startDate, formData.endDate),
-      reason: formData.reason || 'No reason provided',
-      status: 'Pending'
-    };
+    if (!formData.reason.trim()) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Missing Reason',
+        text: 'Please provide a reason for your leave',
+        confirmButtonColor: '#d33'
+      });
+      return;
+    }
 
-    setLeaveRequests([newLeave, ...leaveRequests]);
-    setCurrentPage(1);
-    setFormData({ startDate: '', endDate: '', reason: '' });
+    try {
+      setIsLoading(true);
+      
+      const leaveData = {
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        reason: formData.reason
+      };
 
-    Swal.fire({
-      icon: 'success',
-      title: 'Leave Submitted',
-      text: 'Your leave request has been submitted successfully!',
-      timer: 2000,
-      showConfirmButton: false
-    });
+      await api.createLeave(leaveData);
+
+      // Refresh the leave requests list
+      await fetchLeaveRequests();
+      
+      setCurrentPage(1);
+      setFormData({ startDate: '', endDate: '', reason: '' });
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Leave Submitted',
+        text: 'Your leave request has been submitted successfully!',
+        timer: 2000,
+        showConfirmButton: false
+      });
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Submission Failed',
+        text: error.message || 'Failed to submit leave request. Please ensure you are logged in.',
+        confirmButtonColor: '#d33'
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCancel = () => {
@@ -75,10 +123,37 @@ const LeaveManagementApp = () => {
       confirmButtonColor: '#3085d6',
       cancelButtonColor: '#d33',
       confirmButtonText: 'Yes, logout!'
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        // Add logout logic here
-        console.log('User logged out');
+        try {
+          // Clear authentication data
+          await api.logout();
+          
+          // Clear leave requests state
+          setLeaveRequests([]);
+          setFormData({ startDate: '', endDate: '', reason: '' });
+          
+          // Show success message
+          Swal.fire({
+            icon: 'success',
+            title: 'Logged Out',
+            text: 'You have been successfully logged out!',
+            timer: 1500,
+            showConfirmButton: false
+          });
+          
+          // Redirect to login or home page after a short delay
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1500);
+        } catch (error) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Logout Failed',
+            text: 'An error occurred during logout',
+            confirmButtonColor: '#d33'
+          });
+        }
       }
     });
   };
@@ -97,14 +172,21 @@ const LeaveManagementApp = () => {
         onFormChange={setFormData}
         onSubmit={handleSubmitLeave}
         onCancel={handleCancel}
+        isLoading={isLoading}
       />
 
-      <LeaveHistory
-        leaves={currentLeaves}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
+      {isLoading ? (
+        <div className="text-center py-10">
+          <p className="text-gray-500">Loading leave history...</p>
+        </div>
+      ) : (
+        <LeaveHistory
+          leaves={currentLeaves}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+      )}
     </div>
   );
 };
