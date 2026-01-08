@@ -2,6 +2,61 @@ const API_BASE_URL = "http://localhost:8083";
 
 // API service for leave management
 const api = {
+  // Register new user
+  register: async (userData) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to register");
+      }
+
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Login user
+  login: async (credentials) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Include cookies
+        body: JSON.stringify(credentials),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to login");
+      }
+
+      // Store user data and token in localStorage
+      if (data.success && data.user) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+        }
+      }
+
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // Create a new leave request
   createLeave: async (leaveData) => {
     try {
