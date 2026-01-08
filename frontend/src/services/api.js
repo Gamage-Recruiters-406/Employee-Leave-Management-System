@@ -1,6 +1,37 @@
-import { mockLeaveRequests } from '../data/mockData';
+const API_BASE_URL = 'http://localhost:8083';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Helper function to get auth token
+const getAuthToken = () => {
+  return localStorage.getItem('token');
+};
+
+// Helper function for authenticated requests
+const authFetch = async (url, options = {}) => {
+  const token = getAuthToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || `HTTP ${response.status}`);
+  }
+
+  return response.json().catch((error) => {
+    throw new Error('Invalid JSON response from server');
+  });
+};
 
 const api = {
   // Get all leave requests
@@ -147,29 +178,44 @@ const api = {
     }
   },
 
-  // Send custom email to employee
-  async sendEmailWithMessage(email, subject, message, status) {
-    try {
-      // FOR PRODUCTION:
-      // const response = await fetch(`${API_BASE_URL}/send-email`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, subject, message, status })
-      // });
-      // return await response.json();
+  updateLeaveStatus: async (leaveId, status) => {
+    return authFetch(`${API_BASE_URL}/api/leaves/admin/${leaveId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  },
 
-      // FOR DEVELOPMENT:
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          console.log('Email sent:', { email, subject, message, status });
-          resolve({ success: true, message: 'Email sent successfully' });
-        }, 1000);
-      });
-    } catch (error) {
-      console.error('Error sending email:', error);
-      throw error;
-    }
-  }
+  deleteLeave: async (leaveId) => {
+    return authFetch(`${API_BASE_URL}/api/leaves/${leaveId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  sendEmail: async (email, status) => {
+    return authFetch(`${API_BASE_URL}/api/send-email`, {
+      method: 'POST',
+      body: JSON.stringify({ email, status }),
+    });
+  },
+
+  sendEmailWithMessage: async (email, subject, message, status) => {
+    return authFetch(`${API_BASE_URL}/api/send-email`, {
+      method: 'POST',
+      body: JSON.stringify({ email, subject, message, status }),
+    });
+  },
+
+  getAuditLog: async () => {
+    return authFetch(`${API_BASE_URL}/api/audit-log`, {
+      method: 'GET',
+    });
+  },
+
+  logout: async () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    return Promise.resolve();
+  },
 };
 
 export default api;
