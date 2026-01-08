@@ -1,4 +1,3 @@
-
 const API_BASE_URL = 'http://localhost:8083';
 
 // Helper function to get auth token
