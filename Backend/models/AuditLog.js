@@ -2,22 +2,33 @@ import mongoose from "mongoose";
 
 const auditLogSchema = new mongoose.Schema(
   {
-    leaveRequestId: {
+    leaveId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Leave",
       required: true,
     },
     action: {
       type: String,
-      required: true, // Approved / Rejected
+      enum: ["Approved", "Rejected"],
+      required: true,
     },
-    approvedBy: {
-      type: String,
-      required: true, // Admin name
+    adminId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
-    requestedBy: {
+    adminName: {
       type: String,
-      required: true, // employeeId or employee name
+      required: true,
+    },
+    employeeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    employeeName: {
+      type: String,
+      required: true,
     },
   },
   { timestamps: true }
