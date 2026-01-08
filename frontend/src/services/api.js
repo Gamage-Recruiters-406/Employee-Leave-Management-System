@@ -1,19 +1,42 @@
 import { mockLeaveRequests } from '../data/mockData';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8083';
+
+// Function to get auth token
+const getAuthToken = () => {
+  return localStorage.getItem('token');
+};
+
+// Function for authenticated requests
+const authFetch = async (url, options = {}) => {
+  const token = getAuthToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+};
 
 const api = {
-  // Get all leave requests
+  // Get all leave requests (Admin endpoint)
   async getLeaveRequests() {
     try {
-      // FOR PRODUCTION - Uncomment this:
-      // const response = await fetch(`${API_BASE_URL}/leave-requests`);
-      // return await response.json();
-      
-      // FOR DEVELOPMENT - Using mock data:
-      return new Promise((resolve) => {
-        setTimeout(() => resolve([...mockLeaveRequests]), 500);
-      });
+      return await authFetch(`${API_BASE_URL}/api/leaves/admin/all`);
     } catch (error) {
       console.error('Error fetching leave requests:', error);
       throw error;
@@ -23,17 +46,9 @@ const api = {
   // Update leave request status
   async updateLeaveStatus(id, status) {
     try {
-      // FOR PRODUCTION:
-      // const response = await fetch(`${API_BASE_URL}/leave-requests/${id}`, {
-      //   method: 'PATCH',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ status })
-      // });
-      // return await response.json();
-
-      // FOR DEVELOPMENT:
-      return new Promise((resolve) => {
-        setTimeout(() => resolve({ success: true, status }), 500);
+      return await authFetch(`${API_BASE_URL}/api/leaves/admin/${id}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status })
       });
     } catch (error) {
       console.error('Error updating leave status:', error);
@@ -44,17 +59,9 @@ const api = {
   // Send email to employee
   async sendEmail(email, status) {
     try {
-      // FOR PRODUCTION:
-      // const response = await fetch(`${API_BASE_URL}/send-email`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, status })
-      // });
-      // return await response.json();
-
-      // FOR DEVELOPMENT:
-      return new Promise((resolve) => {
-        setTimeout(() => resolve({ success: true }), 500);
+      return await authFetch(`${API_BASE_URL}/api/send-email`, {
+        method: 'POST',
+        body: JSON.stringify({ email, status })
       });
     } catch (error) {
       console.error('Error sending email:', error);
@@ -65,20 +72,9 @@ const api = {
   // Send custom email to employee
   async sendEmailWithMessage(email, subject, message, status) {
     try {
-      // FOR PRODUCTION:
-      // const response = await fetch(`${API_BASE_URL}/send-email`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, subject, message, status })
-      // });
-      // return await response.json();
-
-      // FOR DEVELOPMENT:
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          console.log('Email sent:', { email, subject, message, status });
-          resolve({ success: true, message: 'Email sent successfully' });
-        }, 1000);
+      return await authFetch(`${API_BASE_URL}/api/send-email`, {
+        method: 'POST',
+        body: JSON.stringify({ email, subject, message, status })
       });
     } catch (error) {
       console.error('Error sending email:', error);
