@@ -23,7 +23,7 @@ const AdminDashboard = () => {
   const loadLeaveRequests = async () => {
     setLoading(true);
     try {
-      const data = await api.getLeaveRequests();
+      const data = await api.getAllLeaves();
       setLeaveRequests(data);
     } catch (error) {
       console.error('Error loading leave requests:', error);
