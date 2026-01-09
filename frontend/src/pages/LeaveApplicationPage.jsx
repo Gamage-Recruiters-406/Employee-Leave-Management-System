@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import LeaveApplicationForm from '../components/LeaveApplicationForm';
 import LeaveHistory from '../components/LeaveHistory';
 import api from '../services/api';
+
 const ITEMS_PER_PAGE = 5;
 
 const LeaveManagementApp = () => {
@@ -25,7 +26,7 @@ const LeaveManagementApp = () => {
       const user = JSON.parse(userData);
       setUserName(user.name || 'User');
     }
-    
+
     fetchLeaveRequests();
   }, []);
 
@@ -33,7 +34,7 @@ const LeaveManagementApp = () => {
     try {
       setIsLoading(true);
       const data = await api.getMyLeaves();
-      
+
       // Format the data to match the UI expectations
       const formattedLeaves = data.map(leave => ({
         id: leave._id,
@@ -43,7 +44,7 @@ const LeaveManagementApp = () => {
         reason: leave.reason,
         status: leave.status
       }));
-      
+
       setLeaveRequests(formattedLeaves);
     } catch (error) {
       // If no leaves found or not authenticated, just keep empty array
@@ -83,7 +84,7 @@ const LeaveManagementApp = () => {
 
     try {
       setIsLoading(true);
-      
+
       const leaveData = {
         startDate: formData.startDate,
         endDate: formData.endDate,
@@ -94,7 +95,7 @@ const LeaveManagementApp = () => {
 
       // Refresh the leave requests list
       await fetchLeaveRequests();
-      
+
       setCurrentPage(1);
       setFormData({ startDate: '', endDate: '', reason: '' });
 
@@ -135,11 +136,11 @@ const LeaveManagementApp = () => {
         try {
           // Clear authentication data
           await api.logout();
-          
+
           // Clear leave requests state
           setLeaveRequests([]);
           setFormData({ startDate: '', endDate: '', reason: '' });
-          
+
           // Show success message
           Swal.fire({
             icon: 'success',
@@ -148,7 +149,7 @@ const LeaveManagementApp = () => {
             timer: 1500,
             showConfirmButton: false
           });
-          
+
           // Redirect to login or home page after a short delay
           setTimeout(() => {
             window.location.href = '/';
@@ -173,7 +174,7 @@ const LeaveManagementApp = () => {
   return (
     <div className="min-h-screen bg-gray-50 text-xl px-10 py-6">
       <Header userName={userName} onLogout={handleLogout} />
-      
+
       <LeaveApplicationForm
         formData={formData}
         onFormChange={setFormData}
