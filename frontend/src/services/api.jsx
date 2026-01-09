@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:8083";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8083";
 
 // API service for leave management
 const api = {
@@ -60,11 +60,17 @@ const api = {
   // Create a new leave request
   createLeave: async (leaveData) => {
     try {
+      const token = localStorage.getItem("token");
+      const headers = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(`${API_BASE_URL}/leaves`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         credentials: "include", // Include cookies for authentication
         body: JSON.stringify(leaveData),
       });
@@ -84,15 +90,26 @@ const api = {
   // Get all leaves for the logged-in employee
   getMyLeaves: async () => {
     try {
+      const token = localStorage.getItem("token");
+      const headers = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(`${API_BASE_URL}/leaves/my`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         credentials: "include", // Include cookies for authentication
       });
 
       const data = await response.json();
+
+      // Handle 404 as empty array (no leaves found)
+      if (response.status === 404) {
+        return [];
+      }
 
       if (!response.ok) {
         throw new Error(data.message || "Failed to fetch leave requests");
@@ -107,11 +124,17 @@ const api = {
   // Delete leave request
   deleteLeave: async (leaveId) => {
     try {
+      const token = localStorage.getItem("token");
+      const headers = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(`${API_BASE_URL}/leaves/${leaveId}`, {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         credentials: "include",
       });
 
@@ -151,11 +174,17 @@ const api = {
   // Get all leaves (Admin only)
   getAllLeaves: async () => {
     try {
+      const token = localStorage.getItem("token");
+      const headers = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(`${API_BASE_URL}/leaves/admin/all`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         credentials: "include",
       });
 
@@ -174,13 +203,19 @@ const api = {
   // Update leave status (Admin only)
   updateLeaveStatus: async (leaveId, status) => {
     try {
+      const token = localStorage.getItem("token");
+      const headers = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(
         `${API_BASE_URL}/leaves/admin/${leaveId}/status`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers,
           credentials: "include",
           body: JSON.stringify({ status }),
         }

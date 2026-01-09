@@ -16,9 +16,17 @@ const LeaveManagementApp = () => {
   });
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [userName, setUserName] = useState('User');
 
-  // Fetch leave requests on component mount
+  // Fetch leave requests and user data on component mount
   useEffect(() => {
+    // Get user data from localStorage
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const user = JSON.parse(userData);
+      setUserName(user.name || 'User');
+    }
+    
     fetchLeaveRequests();
   }, []);
 
@@ -165,7 +173,7 @@ const LeaveManagementApp = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 text-xl px-10 py-6">
-      <Header userName="John Doe" onLogout={handleLogout} />
+      <Header userName={userName} onLogout={handleLogout} />
       
       <LeaveApplicationForm
         formData={formData}
