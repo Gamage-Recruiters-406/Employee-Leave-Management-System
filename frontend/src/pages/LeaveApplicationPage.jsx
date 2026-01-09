@@ -4,7 +4,6 @@ import Header from '../components/Header';
 import LeaveApplicationForm from '../components/LeaveApplicationForm';
 import LeaveHistory from '../components/LeaveHistory';
 import api from '../services/api';
-
 const ITEMS_PER_PAGE = 5;
 
 const LeaveManagementApp = () => {
