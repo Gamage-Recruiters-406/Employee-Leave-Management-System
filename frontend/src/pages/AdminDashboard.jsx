@@ -17,8 +17,39 @@ const AdminDashboard = () => {
   const [alert, setAlert] = useState(null);
 
   useEffect(() => {
-    loadLeaveRequests();
-  }, []);
+  // Check authentication before loading data
+  const token = localStorage.getItem('token');
+  const user = localStorage.getItem('user');
+  
+  if (!token || !user) {
+    showAlert('error', 'Please log in to access the admin dashboard');
+    setTimeout(() => {
+      window.location.href = '/login';
+    }, 2000);
+    setLoading(false); // Stop loading
+    return;
+  }
+
+  // Check if user is admin
+  try {
+    const userData = JSON.parse(user);
+    if (userData.role !== 'admin' && userData.role !== 'Admin') { // Check both cases
+      showAlert('error', 'Access denied. Admin privileges required.');
+      setTimeout(() => {
+        window.location.href = '/employee'; // Redirect to employee dashboard instead
+      }, 2000);
+      setLoading(false);
+      return;
+    }
+  } catch (error) {
+    console.error('Error parsing user data:', error);
+    localStorage.clear();
+    window.location.href = '/login';
+    return;
+  }
+
+  loadLeaveRequests();
+}, []);
 
   const loadLeaveRequests = async () => {
     setLoading(true);
@@ -27,14 +58,31 @@ const AdminDashboard = () => {
       setLeaveRequests(data);
     } catch (error) {
       console.error('Error loading leave requests:', error);
-      showAlert('error', 'Failed to load leave requests. Please try again.');
+      
+      // Handle specific error messages
+      if (error.message.includes('Authentication required') || 
+          error.message.includes('Session expired') ||
+          error.message.includes('Unauthorized')) {
+        showAlert('error', 'Session expired. Please log in again.');
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      } else if (error.message.includes('Admin privileges')) {
+        showAlert('error', 'Access denied. You do not have admin privileges.');
+      } else {
+        showAlert('error', 'Failed to load leave requests. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleLogout = () => {
-    alert('Logout functionality - Connect to your authentication system');
+    api.logout();
+    showAlert('success', 'Logged out successfully');
+    setTimeout(() => {
+      window.location.href = '/login';
+    }, 1000);
   };
 
   const openModal = (request, action) => {
@@ -68,7 +116,15 @@ const AdminDashboard = () => {
       }
     } catch (error) {
       console.error('Error approving leave:', error);
-      showAlert('error', 'Failed to approve leave request. Please try again.');
+      
+      if (error.message.includes('Session expired') || error.message.includes('Unauthorized')) {
+        showAlert('error', 'Session expired. Please log in again.');
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      } else {
+        showAlert('error', 'Failed to approve leave request. Please try again.');
+      }
     }
   };
 
@@ -86,7 +142,15 @@ const AdminDashboard = () => {
       }
     } catch (error) {
       console.error('Error rejecting leave:', error);
-      showAlert('error', 'Failed to reject leave request. Please try again.');
+      
+      if (error.message.includes('Session expired') || error.message.includes('Unauthorized')) {
+        showAlert('error', 'Session expired. Please log in again.');
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      } else {
+        showAlert('error', 'Failed to reject leave request. Please try again.');
+      }
     }
   };
 
@@ -175,56 +239,64 @@ const AdminDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {leaveRequests.map((request, index) => (
-                  <tr
-                    key={request.id}
-                    className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}
-                  >
-                    <td className="px-6 py-4 text-sm text-gray-800">{request.employeeId}</td>
-                    <td className="px-6 py-4 text-sm text-gray-800">{request.startDate}</td>
-                    <td className="px-6 py-4 text-sm text-gray-800">{request.endDate}</td>
-                    <td className="px-6 py-4 text-sm text-gray-800">{request.totalDays}</td>
-                    <td className="px-6 py-4 text-sm text-gray-800">{request.reason}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          request.status === 'Approved'
-                            ? 'text-green-700 bg-green-50'
-                            : request.status === 'Rejected'
-                            ? 'text-red-700 bg-red-50'
-                            : 'text-orange-700 bg-orange-50'
-                        }`}
-                      >
-                        {request.status}
-                      </span>
+                {leaveRequests.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                      No leave requests found
                     </td>
-                    <td className="px-6 py-4">
-                      {request.status === 'Pending' ? (
-                        <div className="flex gap-2">
+                  </tr>
+                ) : (
+                  leaveRequests.map((request, index) => (
+                    <tr
+                      key={request.id}
+                      className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}
+                    >
+                      <td className="px-6 py-4 text-sm text-gray-800">{request.employeeId}</td>
+                      <td className="px-6 py-4 text-sm text-gray-800">{request.startDate}</td>
+                      <td className="px-6 py-4 text-sm text-gray-800">{request.endDate}</td>
+                      <td className="px-6 py-4 text-sm text-gray-800">{request.totalDays}</td>
+                      <td className="px-6 py-4 text-sm text-gray-800">{request.reason}</td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            request.status === 'Approved'
+                              ? 'text-green-700 bg-green-50'
+                              : request.status === 'Rejected'
+                              ? 'text-red-700 bg-red-50'
+                              : 'text-orange-700 bg-orange-50'
+                          }`}
+                        >
+                          {request.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {request.status === 'Pending' ? (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => openModal(request, 'approve')}
+                              className="p-2 bg-green-50 hover:bg-green-100 text-green-600 rounded-lg transition-colors"
+                            >
+                              <Check className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => openModal(request, 'reject')}
+                              className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
+                            >
+                              <X className="w-5 h-5" />
+                            </button>
+                          </div>
+                        ) : (
                           <button
-                            onClick={() => openModal(request, 'approve')}
-                            className="p-2 bg-green-50 hover:bg-green-100 text-green-600 rounded-lg transition-colors"
+                            className="p-2 bg-gray-50 text-gray-400 rounded-lg cursor-not-allowed"
+                            disabled
                           >
                             <Check className="w-5 h-5" />
                           </button>
-                          <button
-                            onClick={() => openModal(request, 'reject')}
-                            className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
-                          >
-                            <X className="w-5 h-5" />
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          className="p-2 bg-gray-50 text-gray-400 rounded-lg cursor-not-allowed"
-                          disabled
-                        >
-                          <Check className="w-5 h-5" />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -250,29 +322,37 @@ const AdminDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {leaveRequests.map((request, index) => (
-                  <tr
-                    key={request.id}
-                    className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}
-                  >
-                    <td className="px-6 py-4 text-sm text-gray-800">{request.employeeId}</td>
-                    <td className="px-6 py-4 text-sm text-gray-800">{request.startDate}</td>
-                    <td className="px-6 py-4 text-sm text-gray-800">{request.endDate}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          request.status === 'Approved'
-                            ? 'text-green-700 bg-green-50'
-                            : request.status === 'Rejected'
-                            ? 'text-red-700 bg-red-50'
-                            : 'text-orange-700 bg-orange-50'
-                        }`}
-                      >
-                        {request.status}
-                      </span>
+                {leaveRequests.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
+                      No audit log entries found
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  leaveRequests.map((request, index) => (
+                    <tr
+                      key={request.id}
+                      className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}
+                    >
+                      <td className="px-6 py-4 text-sm text-gray-800">{request.employeeId}</td>
+                      <td className="px-6 py-4 text-sm text-gray-800">{request.startDate}</td>
+                      <td className="px-6 py-4 text-sm text-gray-800">{request.endDate}</td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            request.status === 'Approved'
+                              ? 'text-green-700 bg-green-50'
+                              : request.status === 'Rejected'
+                              ? 'text-red-700 bg-red-50'
+                              : 'text-orange-700 bg-orange-50'
+                          }`}
+                        >
+                          {request.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
